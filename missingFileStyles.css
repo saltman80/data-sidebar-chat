@@ -1,0 +1,100 @@
+:root {
+  --dw-primary-color: #1a73e8;
+  --dw-on-primary-color: #ffffff;
+  --dw-surface-color: #ffffff;
+  --dw-text-primary: #202124;
+  --dw-text-secondary: #5f6368;
+  --dw-error-color: #d93025;
+  --dw-border-radius: 4px;
+  --dw-spacing-unit: 8px;
+  --dw-font-family: 'Roboto', Arial, sans-serif;
+}
+
+.missing-file-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--dw-spacing-unit) * 3);
+  height: 100%;
+  background-color: var(--dw-surface-color);
+  color: var(--dw-text-primary);
+  font-family: var(--dw-font-family);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.missing-file-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: calc(var(--dw-spacing-unit) * 2);
+  fill: var(--dw-primary-color);
+}
+
+.missing-file-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: var(--dw-spacing-unit);
+}
+
+.missing-file-description {
+  font-size: 1rem;
+  color: var(--dw-text-secondary);
+  margin-bottom: calc(var(--dw-spacing-unit) * 2);
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.missing-file-actions {
+  display: flex;
+  gap: var(--dw-spacing-unit);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.missing-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background-color: var(--dw-primary-color);
+  color: var(--dw-on-primary-color);
+  border: none;
+  border-radius: var(--dw-border-radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.missing-file-button:hover:not(:disabled) {
+  background-color: #1669c1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.missing-file-button:disabled {
+  background-color: #e0e0e0;
+  color: #9e9e9e;
+  cursor: default;
+  box-shadow: none;
+}
+
+@media (max-width: 400px) {
+  .missing-file-container {
+    padding: calc(var(--dw-spacing-unit) * 2);
+  }
+
+  .missing-file-title {
+    font-size: 1.25rem;
+  }
+
+  .missing-file-description {
+    font-size: 0.875rem;
+    max-width: 220px;
+  }
+
+  .missing-file-button {
+    width: 100%;
+  }
+}
