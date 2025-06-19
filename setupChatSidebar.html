@@ -1,0 +1,176 @@
+<!-- This file includes embedded JS/CSS due to project type rules -->
+<script>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root { --bg-light: #ffffff; --bg-dark: #2e2e2e; --fg-light: #000000; --fg-dark: #ffffff; --accent: #1a73e8; --error-bg: #f8d7da; --error-fg: #721c24; --error-border: #f5c6cb; --success-bg: #d4edda; --success-fg: #155724; --success-border: #c3e6cb; }
+    body { margin: 0; font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+    #notification { padding: 8px; font-size: 14px; display: none; }
+    #notification.error { background: var(--error-bg); color: var(--error-fg); border: 1px solid var(--error-border); }
+    #notification.success { background: var(--success-bg); color: var(--success-fg); border: 1px solid var(--success-border); }
+    #chatWindow { flex: 1; padding: 10px; overflow-y: auto; background: var(--bg-light); color: var(--fg-light); display: flex; flex-direction: column; }
+    .dark-theme #chatWindow { background: var(--bg-dark); color: var(--fg-dark); }
+    .message { margin: 5px 0; padding: 8px; border-radius: 4px; max-width: 80%; word-wrap: break-word; }
+    .message.user { background: var(--accent); color: #fff; align-self: flex-end; }
+    .message.bot { background: #e0e0e0; color: #000; align-self: flex-start; }
+    .dark-theme .message.bot { background: #444; color: #fff; }
+    #controls { display: flex; align-items: center; padding: 8px; background: #f5f5f5; }
+    .dark-theme #controls { background: #3a3a3a; }
+    #promptInput { flex: 1; padding: 6px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+    .dark-theme #promptInput { background: #555; color: #fff; border: 1px solid #777; }
+    #modelSelector, button { margin-left: 6px; padding: 6px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; }
+    .dark-theme #modelSelector, .dark-theme button { background: #555; color: #fff; border: 1px solid #777; }
+    button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .dark-theme button:hover { background: var(--accent); }
+    button:disabled, select:disabled, input:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div id="notification" aria-live="polite"></div>
+  <div id="chatWindow"></div>
+  <div id="controls">
+    <input id="promptInput" type="text" placeholder="Type a message..." maxlength="500" />
+    <button id="sendBtn">Send</button>
+    <select id="modelSelector"></select>
+    <button id="clearBtn">Clear</button>
+    <button id="exportBtn">Export</button>
+  </div>
+  <script>
+    const MAX_PROMPT_LENGTH = 500;
+    let chatLog = [];
+
+    function showNotification(message, type = 'error') {
+      const n = document.getElementById('notification');
+      n.textContent = message;
+      n.className = type;
+      n.style.display = 'block';
+      setTimeout(() => {
+        n.style.display = 'none';
+      }, 5000);
+    }
+
+    function clearNotification() {
+      const n = document.getElementById('notification');
+      n.style.display = 'none';
+    }
+
+    function populateModel(config) {
+      const sel = document.getElementById('modelSelector');
+      sel.innerHTML = '';
+      config.models.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m; o.textContent = m;
+        sel.appendChild(o);
+      });
+      if (config.defaultModel) sel.value = config.defaultModel;
+      if (config.theme === 'dark') document.body.classList.add('dark-theme');
+    }
+
+    function render(log) {
+      const win = document.getElementById('chatWindow');
+      win.innerHTML = '';
+      log.forEach(m => {
+        const d = document.createElement('div');
+        d.className = 'message ' + m.sender;
+        d.textContent = m.text;
+        win.appendChild(d);
+      });
+      win.scrollTop = win.scrollHeight;
+    }
+
+    function sendMessage() {
+      clearNotification();
+      const inp = document.getElementById('promptInput');
+      const text = inp.value.trim();
+      if (!text) return;
+      if (text.length > MAX_PROMPT_LENGTH) {
+        showNotification(`Message too long. Maximum ${MAX_PROMPT_LENGTH} characters allowed.`, 'error');
+        return;
+      }
+      const sendBtn = document.getElementById('sendBtn');
+      inp.disabled = true;
+      sendBtn.disabled = true;
+      const model = document.getElementById('modelSelector').value;
+      google.script.run
+        .withSuccessHandler(res => {
+          chatLog = res;
+          render(chatLog);
+          inp.disabled = false;
+          sendBtn.disabled = false;
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showNotification(err.message || 'Failed to send message.', 'error');
+          inp.disabled = false;
+          sendBtn.disabled = false;
+        })
+        .processUserInput(text, model);
+      inp.value = '';
+    }
+
+    function clearChat() {
+      clearNotification();
+      const btn = document.getElementById('clearBtn');
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(res => {
+          chatLog = res;
+          render(chatLog);
+          btn.disabled = false;
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showNotification(err.message || 'Failed to clear chat.', 'error');
+          btn.disabled = false;
+        })
+        .clearChat();
+    }
+
+    function exportChat() {
+      clearNotification();
+      const btn = document.getElementById('exportBtn');
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(() => {
+          showNotification('Chat exported successfully.', 'success');
+          btn.disabled = false;
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showNotification(err.message || 'Failed to export chat.', 'error');
+          btn.disabled = false;
+        })
+        .exportChatLog();
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('promptInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+    document.getElementById('clearBtn').addEventListener('click', clearChat);
+    document.getElementById('exportBtn').addEventListener('click', exportChat);
+
+    window.addEventListener('load', () => {
+      google.script.run
+        .withSuccessHandler(populateModel)
+        .withFailureHandler(err => {
+          console.error(err);
+          showNotification(err.message || 'Failed to load configuration.', 'error');
+        })
+        .getApiConfig();
+      google.script.run
+        .withSuccessHandler(res => {
+          chatLog = res;
+          render(chatLog);
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showNotification(err.message || 'Failed to load chat log.', 'error');
+        })
+        .getChatLog();
+    });
+  </script>
+</body>
+</html>
+</script>
