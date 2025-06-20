@@ -11,7 +11,7 @@ function onInstall(e) {
 
 function showSidebar() {
   const html = HtmlService
-    .createHtmlOutputFromFile('Sidebar')
+    .createHtmlOutputFromFile('setupChatSidebar')
     .setTitle('Data Whisperer');
   SpreadsheetApp.getUi().showSidebar(html);
 }
