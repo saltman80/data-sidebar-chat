@@ -1,5 +1,5 @@
 function callAiProvider(prompt, dataJson) {
-  const cfg = getApiConfig();
+  const cfg = getProviderConfig();
   // Validate required config values
   switch (cfg.modelProvider) {
     case 'OpenAI':
@@ -84,7 +84,7 @@ function isRetryableStatus(code) {
   return code === 429 || (code >= 500 && code < 600);
 }
 
-function getApiConfig() {
+function getProviderConfig() {
   const props = PropertiesService.getUserProperties();
   const secretName = props.getProperty('SECRET_NAME');
   let secretConfig = {};
