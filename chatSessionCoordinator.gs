@@ -11,7 +11,11 @@ function processUserInput(prompt) {
       }));
     }
     appendChatMessage('user', prompt);
-    var response = callAiProvider(prompt, dataJson);
+    var provider = getProvider();
+    var fullPrompt = prompt + '\n\nData:\n' + dataJson;
+    var response = provider === 'openrouter'
+      ? AI_OpenRouter(fullPrompt)
+      : AI_OpenAI(fullPrompt);
     appendChatMessage('assistant', response);
     return { success: true, messages: getChatHistory() };
   } catch (e) {

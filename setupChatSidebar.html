@@ -33,6 +33,13 @@
     <input id="promptInput" type="text" placeholder="Type a message..." maxlength="500" />
     <button id="sendBtn">Send</button>
     <select id="modelSelector"></select>
+    <button id="fetchModelsBtn">Fetch Models</button>
+    <select id="providerSelector">
+      <option value="openai">OpenAI</option>
+      <option value="openrouter">OpenRouter</option>
+    </select>
+    <input id="apiKeyInput" type="password" placeholder="API Key" />
+    <button id="saveKeyBtn">Save Key</button>
     <button id="clearBtn">Clear</button>
     <button id="exportBtn">Export</button>
   </div>
@@ -55,16 +62,16 @@
       n.style.display = 'none';
     }
 
-    function populateModel(config) {
+    function populateModels(list, selected) {
       const sel = document.getElementById('modelSelector');
       sel.innerHTML = '';
-      config.models.forEach(m => {
+      list.forEach(m => {
         const o = document.createElement('option');
-        o.value = m; o.textContent = m;
+        o.value = m.id || m.name || m;
+        o.textContent = m.name || m.id || m;
         sel.appendChild(o);
       });
-      if (config.defaultModel) sel.value = config.defaultModel;
-      if (config.theme === 'dark') document.body.classList.add('dark-theme');
+      if (selected) sel.value = selected;
     }
 
     function render(log) {
@@ -91,7 +98,6 @@
       const sendBtn = document.getElementById('sendBtn');
       inp.disabled = true;
       sendBtn.disabled = true;
-      const model = document.getElementById('modelSelector').value;
       google.script.run
         .withSuccessHandler(res => {
           chatLog = res;
@@ -105,7 +111,7 @@
           inp.disabled = false;
           sendBtn.disabled = false;
         })
-        .processUserInput(text, model);
+        .processUserInput(text);
       inp.value = '';
     }
 
@@ -144,21 +150,61 @@
         .exportChatLog();
     }
 
+    function fetchModels() {
+      clearNotification();
+      const provider = document.getElementById('providerSelector').value;
+      const btn = document.getElementById('fetchModelsBtn');
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(models => {
+          populateModels(models, document.getElementById('modelSelector').value);
+          btn.disabled = false;
+        })
+        .withFailureHandler(err => {
+          console.error(err);
+          showNotification(err.message || 'Failed to fetch models.', 'error');
+          btn.disabled = false;
+        })
+        .fetchModels(provider);
+    }
+
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
     document.getElementById('promptInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') sendMessage();
     });
     document.getElementById('clearBtn').addEventListener('click', clearChat);
     document.getElementById('exportBtn').addEventListener('click', exportChat);
+    document.getElementById('saveKeyBtn').addEventListener('click', () => {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      google.script.run.setApiKey(key);
+    });
+    document.getElementById('providerSelector').addEventListener('change', () => {
+      const p = document.getElementById('providerSelector').value;
+      google.script.run.setProvider(p);
+    });
+    document.getElementById('modelSelector').addEventListener('change', () => {
+      const m = document.getElementById('modelSelector').value;
+      google.script.run.setModel(m);
+    });
+    document.getElementById('fetchModelsBtn').addEventListener('click', fetchModels);
 
-    window.addEventListener('load', () => {
+    function loadSettings() {
       google.script.run
-        .withSuccessHandler(populateModel)
+        .withSuccessHandler(cfg => {
+          document.getElementById('providerSelector').value = cfg.provider || 'openai';
+          document.getElementById('apiKeyInput').value = cfg.apiKey || '';
+          fetchModels();
+          if (cfg.model) document.getElementById('modelSelector').value = cfg.model;
+        })
         .withFailureHandler(err => {
           console.error(err);
           showNotification(err.message || 'Failed to load configuration.', 'error');
         })
-        .getApiConfig();
+        .getApiSettings();
+    }
+
+    window.addEventListener('load', () => {
+      loadSettings();
       google.script.run
         .withSuccessHandler(res => {
           chatLog = res;
