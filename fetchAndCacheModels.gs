@@ -50,3 +50,7 @@ function fetchProviderModels(provider) {
   }
 }
 
+// Expose helper for other scripts expecting a namespaced function
+fetchAndCacheModels.getCachedProviderModels = getCachedProviderModels;
+
+

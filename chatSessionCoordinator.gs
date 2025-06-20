@@ -138,3 +138,18 @@ if (typeof ChatService === 'undefined') {
   ChatService = {};
 }
 ChatService.getChatLog = getChatHistory;
+ChatService.clearChat = clearChatHistory;
+ChatService.exportChatLog = exportChatLogToTimestampedSheet;
+
+function getChatLog() {
+  return getChatHistory();
+}
+
+function clearChat() {
+  clearChatHistory();
+  return getChatHistory();
+}
+
+function exportChatLog() {
+  exportChatLogToTimestampedSheet();
+}
