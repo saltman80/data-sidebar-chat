@@ -1,21 +1,10 @@
 function callAiProvider(prompt, dataJson) {
   const cfg = getProviderConfig();
   // Validate required config values
-  switch (cfg.modelProvider) {
-    case 'OpenAI':
-      if (!cfg.openaiApiKey) throw new Error('Missing OpenAI API key.');
-      break;
-    case 'Anthropic':
-      if (!cfg.anthropicApiKey) throw new Error('Missing Anthropic API key.');
-      break;
-    case 'Azure':
-      if (!cfg.azureApiKey) throw new Error('Missing Azure API key.');
-      if (!cfg.azureEndpoint) throw new Error('Missing Azure endpoint.');
-      if (!cfg.azureDeployment) throw new Error('Missing Azure deployment name.');
-      break;
-    default:
-      throw new Error('Unsupported AI provider: ' + cfg.modelProvider);
+  if (cfg.modelProvider !== 'OpenAI') {
+    throw new Error('Unsupported AI provider: ' + cfg.modelProvider);
   }
+  if (!cfg.openaiApiKey) throw new Error('Missing OpenAI API key.');
   const payload = buildPayload(cfg.modelProvider, prompt, dataJson, cfg);
   let url;
   let options = {
@@ -24,19 +13,9 @@ function callAiProvider(prompt, dataJson) {
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
-  switch (cfg.modelProvider) {
-    case 'OpenAI':
-      url = cfg.openaiApiUrl;
-      options.headers = { Authorization: 'Bearer ' + cfg.openaiApiKey };
-      break;
-    case 'Anthropic':
-      url = cfg.anthropicApiUrl;
-      options.headers = { 'x-api-key': cfg.anthropicApiKey };
-      break;
-    case 'Azure':
-      url = `${cfg.azureEndpoint}/openai/deployments/${cfg.azureDeployment}/chat/completions?api-version=${cfg.azureApiVersion}`;
-      options.headers = { 'api-key': cfg.azureApiKey };
-      break;
+  if (cfg.modelProvider === 'OpenAI') {
+    url = cfg.openaiApiUrl;
+    options.headers = { Authorization: 'Bearer ' + cfg.openaiApiKey };
   }
   const response = fetchWithRetry(url, options, cfg.modelProvider);
   let json;
@@ -100,59 +79,33 @@ function getProviderConfig() {
     modelProvider: props.getProperty('PROP_MODEL') || props.getProperty('MODEL_PROVIDER') || secretConfig.modelProvider || 'OpenAI',
     openaiApiKey: secretConfig.openaiApiKey || props.getProperty('OPENAI_API_KEY') || '',
     openaiApiUrl: secretConfig.openaiApiUrl || props.getProperty('OPENAI_API_URL') || 'https://api.openai.com/v1/chat/completions',
-    openaiModel: secretConfig.openaiModel || props.getProperty('OPENAI_MODEL') || 'gpt-3.5-turbo',
-    anthropicApiKey: secretConfig.anthropicApiKey || props.getProperty('ANTHROPIC_API_KEY') || '',
-    anthropicApiUrl: secretConfig.anthropicApiUrl || props.getProperty('ANTHROPIC_API_URL') || 'https://api.anthropic.com/v1/complete',
-    anthropicModel: secretConfig.anthropicModel || props.getProperty('ANTHROPIC_MODEL') || 'claude-v1',
-    azureApiKey: secretConfig.azureApiKey || props.getProperty('AZURE_API_KEY') || '',
-    azureEndpoint: secretConfig.azureEndpoint || props.getProperty('AZURE_ENDPOINT') || '',
-    azureDeployment: secretConfig.azureDeployment || props.getProperty('AZURE_DEPLOYMENT') || '',
-    azureApiVersion: secretConfig.azureApiVersion || props.getProperty('AZURE_API_VERSION') || '2023-03-15-preview'
+    openaiModel: secretConfig.openaiModel || props.getProperty('OPENAI_MODEL') || 'gpt-3.5-turbo'
   };
 }
 
 function buildPayload(provider, prompt, dataJson, cfg) {
-  switch (provider) {
-    case 'OpenAI':
-    case 'Azure':
-      return {
-        model: provider === 'OpenAI' ? cfg.openaiModel : undefined,
-        deployment_id: provider === 'Azure' ? cfg.azureDeployment : undefined,
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
-          { role: 'user', content: prompt + '\n\nData:\n' + dataJson }
-        ],
-        temperature: 0.7,
-        max_tokens: 1024
-      };
-    case 'Anthropic':
-      return {
-        model: cfg.anthropicModel,
-        prompt: `\nHuman: ${prompt}\n\nData:\n${dataJson}\n\nAssistant:`,
-        max_tokens_to_sample: 1024,
-        temperature: 0.7
-      };
-    default:
-      throw new Error('Unsupported AI provider: ' + provider);
+  if (provider === 'OpenAI') {
+    return {
+      model: cfg.openaiModel,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: prompt + '\n\nData:\n' + dataJson }
+      ],
+      temperature: 0.7,
+      max_tokens: 1024
+    };
   }
+  throw new Error('Unsupported AI provider: ' + provider);
 }
 
 function parseAiResponse(provider, json) {
-  switch (provider) {
-    case 'OpenAI':
-    case 'Azure':
-      if (json.choices && json.choices.length > 0) {
-        return json.choices.map(function(choice) {
-          return choice.message && choice.message.content ? choice.message.content : '';
-        }).join('\n');
-      }
-      throw new Error('Unexpected response from ' + provider + ': ' + JSON.stringify(json));
-    case 'Anthropic':
-      if (json.completion) {
-        return json.completion;
-      }
-      throw new Error('Unexpected response from Anthropic: ' + JSON.stringify(json));
-    default:
-      throw new Error('Unsupported AI provider: ' + provider);
+  if (provider === 'OpenAI') {
+    if (json.choices && json.choices.length > 0) {
+      return json.choices.map(function(choice) {
+        return choice.message && choice.message.content ? choice.message.content : '';
+      }).join('\n');
+    }
+    throw new Error('Unexpected response from ' + provider + ': ' + JSON.stringify(json));
   }
+  throw new Error('Unsupported AI provider: ' + provider);
 }
