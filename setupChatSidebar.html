@@ -4,30 +4,102 @@
 <head>
   <base target="_top">
   <style>
-    :root { --bg-light: #ffffff; --bg-dark: #2e2e2e; --fg-light: #000000; --fg-dark: #ffffff; --accent: #1a73e8; --error-bg: #f8d7da; --error-fg: #721c24; --error-border: #f5c6cb; --success-bg: #d4edda; --success-fg: #155724; --success-border: #c3e6cb; }
-    body { margin: 0; font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+    :root {
+      --bg-light: #11131f;
+      --bg-dark: #11131f;
+      --fg-light: #e0e0e0;
+      --fg-dark: #e0e0e0;
+      --accent: #7b4fe8;
+      --error-bg: #f8d7da;
+      --error-fg: #721c24;
+      --error-border: #f5c6cb;
+      --success-bg: #d4edda;
+      --success-fg: #155724;
+      --success-border: #c3e6cb;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: linear-gradient(135deg, #1b1f34, #0e0f1a);
+      color: var(--fg-light);
+    }
     #notification { padding: 8px; font-size: 14px; display: none; }
     #notification.error { background: var(--error-bg); color: var(--error-fg); border: 1px solid var(--error-border); }
     #notification.success { background: var(--success-bg); color: var(--success-fg); border: 1px solid var(--success-border); }
-    #chatWindow { flex: 1; padding: 10px; overflow-y: auto; background: var(--bg-light); color: var(--fg-light); display: flex; flex-direction: column; }
-    .dark-theme #chatWindow { background: var(--bg-dark); color: var(--fg-dark); }
+    #chatWindow {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.05);
+      color: var(--fg-light);
+      display: flex;
+      flex-direction: column;
+      border-radius: 8px;
+    }
+    .dark-theme #chatWindow {
+      background: rgba(0,0,0,0.4);
+      color: var(--fg-dark);
+    }
     .message { margin: 5px 0; padding: 8px; border-radius: 4px; max-width: 80%; word-wrap: break-word; }
     .message.user { background: var(--accent); color: #fff; align-self: flex-end; }
     .message.bot { background: #e0e0e0; color: #000; align-self: flex-start; }
     .dark-theme .message.bot { background: #444; color: #fff; }
-    #controls { display: flex; align-items: center; padding: 8px; background: #f5f5f5; }
-    .dark-theme #controls { background: #3a3a3a; }
+    #controls {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      background: rgba(255,255,255,0.08);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(6px);
+    }
+    .dark-theme #controls {
+      background: rgba(0,0,0,0.4);
+    }
     #promptInput { flex: 1; padding: 6px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
     .dark-theme #promptInput { background: #555; color: #fff; border: 1px solid #777; }
     #modelSelector, button { margin-left: 6px; padding: 6px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; }
     .dark-theme #modelSelector, .dark-theme button { background: #555; color: #fff; border: 1px solid #777; }
-    button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .dark-theme button:hover { background: var(--accent); }
+    button:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .dark-theme button:hover {
+      background: var(--accent);
+    }
+    #spinner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle at 30% 30%, rgba(155, 80, 255, 0.8), rgba(0, 170, 255, 0.5));
+      box-shadow: 0 0 12px rgba(155, 80, 255, 0.6), 0 0 24px rgba(0, 170, 255, 0.6);
+      animation: pulse 1.2s ease-in-out infinite;
+      display: none;
+      z-index: 1000;
+    }
+    @keyframes pulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.7;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
     button:disabled, select:disabled, input:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
 </head>
 <body>
   <div id="notification" aria-live="polite"></div>
+  <div id="spinner" aria-hidden="true"></div>
   <div id="chatWindow"></div>
   <div id="controls">
     <input id="promptInput" type="text" placeholder="Type a message..." maxlength="500" />
@@ -96,20 +168,24 @@
         return;
       }
       const sendBtn = document.getElementById('sendBtn');
+      const spinner = document.getElementById('spinner');
       inp.disabled = true;
       sendBtn.disabled = true;
+      spinner.style.display = 'block';
       google.script.run
         .withSuccessHandler(res => {
           chatLog = res;
           render(chatLog);
           inp.disabled = false;
           sendBtn.disabled = false;
+          spinner.style.display = 'none';
         })
         .withFailureHandler(err => {
           console.error(err);
           showNotification(err.message || 'Failed to send message.', 'error');
           inp.disabled = false;
           sendBtn.disabled = false;
+          spinner.style.display = 'none';
         })
         .processUserInput(text);
       inp.value = '';
