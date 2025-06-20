@@ -8,7 +8,7 @@ if (typeof modelservice === 'undefined') {
       if (typeof fetchAndCacheModels !== 'undefined' &&
           typeof fetchAndCacheModels.getCachedProviderModels === 'function') {
         var models = [];
-        ['openai', 'azure-openai', 'anthropic', 'cohere', 'vertex-ai'].forEach(function(provider) {
+        ['openai'].forEach(function(provider) {
           var m = fetchAndCacheModels.getCachedProviderModels(provider);
           if (Array.isArray(m)) {
             models = models.concat(m);
