@@ -42,76 +42,11 @@ function getCachedProviderModels(provider) {
 }
 
 function fetchProviderModels(provider) {
-  if (provider === 'openai') {
-    return fetchOpenAIModels();
+  try {
+    return fetchModels(provider);
+  } catch (e) {
+    Logger.log('Error fetching models from ' + provider + ': ' + e);
+    return [];
   }
-  if (provider === 'openrouter') {
-    return fetchOpenRouterModels();
-  }
-  return [];
 }
 
-function fetchOpenAIModels() {
-  var apiKey = getUserProperty('OPENAI_API_KEY');
-  if (!apiKey) return [];
-  var url = 'https://api.openai.com/v1/models';
-  var res;
-  try {
-    res = UrlFetchApp.fetch(url, {
-      headers: { Authorization: 'Bearer ' + apiKey },
-      muteHttpExceptions: true
-    });
-  } catch (err) {
-    Logger.log('Network error fetching OpenAI models: ' + err);
-    return [];
-  }
-  if (res.getResponseCode() !== 200) {
-    Logger.log('Unexpected response code fetching OpenAI models: ' + res.getResponseCode());
-    return [];
-  }
-  var data;
-  try {
-    data = JSON.parse(res.getContentText());
-  } catch (err) {
-    Logger.log('Error parsing OpenAI models response: ' + err);
-    return [];
-  }
-  if (!data.data || !Array.isArray(data.data)) return [];
-  return data.data.map(function(m) { return m.id; });
-}
-
-function fetchOpenRouterModels() {
-  var apiKey = getUserProperty('OPENROUTER_API_KEY');
-  if (!apiKey) return [];
-  var url = 'https://openrouter.ai/api/v1/models';
-  var res;
-  try {
-    res = UrlFetchApp.fetch(url, {
-      headers: { Authorization: 'Bearer ' + apiKey },
-      muteHttpExceptions: true
-    });
-  } catch (err) {
-    Logger.log('Network error fetching OpenRouter models: ' + err);
-    return [];
-  }
-  if (res.getResponseCode() !== 200) {
-    Logger.log('Unexpected response code fetching OpenRouter models: ' + res.getResponseCode());
-    return [];
-  }
-  var data;
-  try {
-    data = JSON.parse(res.getContentText());
-  } catch (err) {
-    Logger.log('Error parsing OpenRouter models response: ' + err);
-    return [];
-  }
-  if (!data.data || !Array.isArray(data.data)) return [];
-  return data.data.map(function(m) {
-    return m.id || m.name;
-  });
-}
-
-
-function getUserProperty(key) {
-  return PropertiesService.getUserProperties().getProperty(key);
-}
