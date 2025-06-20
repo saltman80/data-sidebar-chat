@@ -1,7 +1,7 @@
 const MODEL_CACHE_TTL_HOURS = 24;
 
 function fetchAndCacheModels() {
-  var providers = ['openai'];
+  var providers = ['openai', 'openrouter'];
   var results = {};
   providers.forEach(function(provider) {
     try {
@@ -45,6 +45,9 @@ function fetchProviderModels(provider) {
   if (provider === 'openai') {
     return fetchOpenAIModels();
   }
+  if (provider === 'openrouter') {
+    return fetchOpenRouterModels();
+  }
   return [];
 }
 
@@ -75,6 +78,37 @@ function fetchOpenAIModels() {
   }
   if (!data.data || !Array.isArray(data.data)) return [];
   return data.data.map(function(m) { return m.id; });
+}
+
+function fetchOpenRouterModels() {
+  var apiKey = getUserProperty('OPENROUTER_API_KEY');
+  if (!apiKey) return [];
+  var url = 'https://openrouter.ai/api/v1/models';
+  var res;
+  try {
+    res = UrlFetchApp.fetch(url, {
+      headers: { Authorization: 'Bearer ' + apiKey },
+      muteHttpExceptions: true
+    });
+  } catch (err) {
+    Logger.log('Network error fetching OpenRouter models: ' + err);
+    return [];
+  }
+  if (res.getResponseCode() !== 200) {
+    Logger.log('Unexpected response code fetching OpenRouter models: ' + res.getResponseCode());
+    return [];
+  }
+  var data;
+  try {
+    data = JSON.parse(res.getContentText());
+  } catch (err) {
+    Logger.log('Error parsing OpenRouter models response: ' + err);
+    return [];
+  }
+  if (!data.data || !Array.isArray(data.data)) return [];
+  return data.data.map(function(m) {
+    return m.id || m.name;
+  });
 }
 
 
