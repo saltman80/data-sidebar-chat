@@ -158,7 +158,7 @@
           console.error(err);
           showNotification(err.message || 'Failed to load configuration.', 'error');
         })
-        .getApiConfig();
+        .getSidebarConfig();
       google.script.run
         .withSuccessHandler(res => {
           chatLog = res;

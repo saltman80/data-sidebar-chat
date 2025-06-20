@@ -1,13 +1,24 @@
-function processUserInput(prompt) {
+function processUserInput(prompt, model) {
   try {
+    if (model && typeof model === 'string') {
+      var props = PropertiesService.getDocumentProperties();
+      var provider = props.getProperty('aiProvider') || 'openai';
+      if (provider === 'openai') {
+        props.setProperty('openaiModel', model);
+      } else if (provider === 'anthropic') {
+        props.setProperty('anthropicModel', model);
+      } else if (provider === 'azure') {
+        props.setProperty('azureDeployment', model);
+      }
+    }
     var dataJson = getSelectedRangeAsJson();
     appendChatMessage('user', prompt);
     var response = callAiProvider(prompt, dataJson);
     appendChatMessage('assistant', response);
-    return { success: true, messages: getChatHistory() };
+    return getChatHistory();
   } catch (e) {
     Logger.log(e);
-    return { success: false, error: e.toString() };
+    throw e;
   }
 }
 
@@ -168,3 +179,16 @@ if (typeof ChatService === 'undefined') {
   ChatService = {};
 }
 ChatService.getChatLog = getChatHistory;
+
+function getChatLog() {
+  return getChatHistory();
+}
+
+function clearChat() {
+  clearChatHistory();
+  return getChatHistory();
+}
+
+function exportChatLog() {
+  exportChatLogToTimestampedSheet();
+}
